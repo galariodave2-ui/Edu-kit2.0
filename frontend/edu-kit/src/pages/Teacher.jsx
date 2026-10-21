@@ -11,7 +11,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { auth, db } from "../firebase.js";
+import { auth, db } from "../../firebase.js";
 
 const DEFAULT_WEIGHTS = {
   quizzes: 5,

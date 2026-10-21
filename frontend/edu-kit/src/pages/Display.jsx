@@ -9,7 +9,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import { auth, db } from "../firebase.js";
+import { auth, db } from "../../firebase.js";
 
 const API_URL = "http://localhost:8080";
 

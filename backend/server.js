@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 
 const express = require("express");
@@ -6,9 +7,29 @@ const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
-const { initializeApp, cert } = require("firebase-admin/app");
+const { initializeApp, cert, getApps } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
-const serviceAccount = require("./serviceAccountKey.json");
+
+let serviceAccount;
+
+try {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } else {
+        serviceAccount = require("./serviceAccountKey.json");
+    }
+} catch (error) {
+    console.error("Firebase service account configuration error:", error.message);
+    process.exit(1);
+}
+
+if (getApps().length === 0) {
+    initializeApp({
+        credential: cert(serviceAccount)
+    });
+}
+
+const db = getFirestore();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -24,12 +45,6 @@ if (
 
 app.use(cors());
 app.use(express.json());
-
-initializeApp({
-    credential: cert(serviceAccount)
-});
-
-const db = getFirestore();
 
 const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -49,6 +64,8 @@ const otpStore = new Map();
 const OTP_EXPIRATION = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 
+// HEALTH CHECK
+
 app.get("/api/health", (req, res) => {
     res.json({
         status: "online",
@@ -65,9 +82,7 @@ function watchCollection(name) {
         snapshot => {
             if (firstLoad) {
                 firstLoad = false;
-                console.log(
-                    `[${name}] listening... (${snapshot.size} docs)`
-                );
+                console.log(`[${name}] listening... (${snapshot.size} docs)`);
                 return;
             }
 
@@ -88,7 +103,7 @@ function watchCollection(name) {
             });
         },
         error => {
-            console.error(`[${name}] listener error:`, error);
+            console.error(`[${name}] listener error:`, error.message);
         }
     );
 }
@@ -97,9 +112,6 @@ watchCollection("teachers");
 watchCollection("students");
 
 // ROLE AUTHORIZATION
-// Admin: ADMIN_EMAILS in .env
-// Teacher: email in Firestore teachers collection
-// Student: email in Firestore students collection
 
 async function isAuthorized(email, role) {
     const normalizedEmail = String(email || "")
@@ -141,10 +153,7 @@ app.post("/api/auth/send-otp", async (req, res) => {
             .trim()
             .toLowerCase();
 
-        if (
-            !email ||
-            !["admin", "teacher", "student"].includes(role)
-        ) {
+        if (!email || !["admin", "teacher", "student"].includes(role)) {
             return res.status(400).json({
                 message: "A valid email and role are required."
             });
@@ -233,8 +242,7 @@ app.post("/api/auth/verify-otp", async (req, res) => {
             !["admin", "teacher", "student"].includes(role)
         ) {
             return res.status(400).json({
-                message:
-                    "Enter your email, selected role, and 6-digit OTP."
+                message: "Enter your email, selected role, and 6-digit OTP."
             });
         }
 
@@ -275,7 +283,6 @@ app.post("/api/auth/verify-otp", async (req, res) => {
             });
         }
 
-        // Check enrollment again before granting access.
         const authorized = await isAuthorized(email, role);
 
         if (!authorized) {
@@ -350,6 +357,7 @@ function createCrudRoutes(routeName, collectionName, label) {
     const collection = db.collection(collectionName);
 
     // GET ALL RECORDS
+
     app.get(`/api/${routeName}`, async (req, res) => {
         try {
             const snapshot = await collection.get();
@@ -365,6 +373,7 @@ function createCrudRoutes(routeName, collectionName, label) {
     });
 
     // ADD RECORD
+
     app.post(`/api/${routeName}`, async (req, res) => {
         try {
             const record = normalizeRecord(req.body);
@@ -382,7 +391,6 @@ function createCrudRoutes(routeName, collectionName, label) {
                 });
             }
 
-            // Avoid duplicate Gmail enrollment in the same collection.
             const snapshot = await collection.get();
 
             const duplicate = snapshot.docs.some(document => {
@@ -422,6 +430,7 @@ function createCrudRoutes(routeName, collectionName, label) {
     });
 
     // UPDATE RECORD
+
     app.put(`/api/${routeName}/:id`, async (req, res) => {
         try {
             const documentRef = collection.doc(req.params.id);
@@ -493,6 +502,7 @@ function createCrudRoutes(routeName, collectionName, label) {
     });
 
     // DELETE RECORD
+
     app.delete(`/api/${routeName}/:id`, async (req, res) => {
         try {
             const documentRef = collection.doc(req.params.id);
@@ -530,6 +540,8 @@ function createCrudRoutes(routeName, collectionName, label) {
 createCrudRoutes("teacher", "teachers", "Teacher");
 createCrudRoutes("student", "students", "Student");
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// START SERVER
+
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
 });

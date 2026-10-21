@@ -6,7 +6,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db } from "../firebase.js";
+import { db } from "../../firebase.js";
 
 const formatDate = (value) => {
   if (!value) return "-";
