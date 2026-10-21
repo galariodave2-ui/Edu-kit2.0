@@ -6,7 +6,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { auth, db } from "../../firebase.js";
+import { auth, db } from "../firebase.js";
 
 const formatGrade = (value) =>
   Number.isFinite(value) ? value.toFixed(2) : "0.00";
