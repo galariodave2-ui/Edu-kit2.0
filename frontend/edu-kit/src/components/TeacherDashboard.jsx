@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { collection, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore'
-import { db } from '../../firebase.js'
+import { db } from '../firebase.js'
 
 function calculateGrade(quiz, assignment) {
   const values = [Number(quiz), Number(assignment)].filter(v => Number.isFinite(v) && v >= 0)
