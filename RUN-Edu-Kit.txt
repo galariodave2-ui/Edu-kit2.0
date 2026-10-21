@@ -1,0 +1,33 @@
+EDU-KIT - WINDOWS CMD SETUP
+
+1. Open CMD window #1:
+cd /d "YOUR-PATH\Edu-kit\backend"
+npm install
+npm start
+
+Keep this window running. You should see:
+Edu-Kit Backend running on http://localhost:5000
+
+2. Open CMD window #2:
+cd /d "YOUR-PATH\Edu-kit\frontend\edu-kit"
+npm install
+npm run dev
+
+Open:
+http://localhost:5173
+
+IMPORTANT:
+- There is NO .env file required.
+- Firebase configuration is in frontend\edu-kit\firebase.js.
+- Backend port is 5000.
+- Vite proxies /api requests to http://localhost:5000.
+- Login has NO role dropdown.
+- New accounts are created as student.
+- Change a user's Firestore users/{UID}/role to teacher or admin when needed.
+- Sign out and sign in again after changing a role.
+
+Firebase Authentication:
+Enable Email/Password and Google providers in Firebase Console.
+
+Firestore:
+Create the Firestore database and deploy firestore.rules if you use the included rules.
